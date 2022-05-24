@@ -1,0 +1,13 @@
+name: cloudflare
+short: cf
+author: outblocks
+usage: Cloudflare DNS plugin
+description: Automatically setup Cloudflare DNS
+cmd:
+  default: $OUTBLOCKS_PLUGIN_DIR/cloudflare_plugin
+  windows: $OUTBLOCKS_PLUGIN_DIR/cloudflare_plugin.exe
+actions:
+  - dns
+  - deploy
+priorities:
+  deploy: [500]

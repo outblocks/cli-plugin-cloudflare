@@ -1,0 +1,54 @@
+project_name: cli-plugin-cloudflare
+
+release:
+  github:
+    owner: outblocks
+    name: cli-plugin-cloudflare
+
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - binary: cloudflare_plugin
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+      - arm
+      - 386
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags: -s -w
+
+archives:
+  - name_template: '{{ .ProjectName }}-{{ .Version }}-{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
+    format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - LICENSE
+      - plugin.yaml
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  name_template: "{{ .Tag }}-snapshot"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^dev:'
+      - 'README'
+      - Merge pull request
+      - Merge branch

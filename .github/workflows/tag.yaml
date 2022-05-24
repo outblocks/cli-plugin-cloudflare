@@ -1,0 +1,35 @@
+name: "Release a tag"
+on:
+  push:
+    tags:
+      - v*
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GORELEASER_GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.18
+      - name: Unshallow
+        run: git fetch --prune --unshallow
+
+      - name: Install git-chglog
+        uses: jaxxstorm/action-install-gh-release@v1.2.0
+        with: # Grab the latest version
+          repo: git-chglog/git-chglog
+
+      - name: Create changelog for release
+        run: |
+          git-chglog --template .chglog/CHANGELOG.release.tpl.md -o /tmp/changelog ${GITHUB_REF/refs\/tags\//}
+
+      - name: Create release
+        uses: goreleaser/goreleaser-action@v2
+        with:
+          version: latest
+          args: release --rm-dist --release-notes=/tmp/changelog
+        env:
+          GITHUB_TOKEN: ${{ secrets.GORELEASER_GITHUB_TOKEN }}
