@@ -55,8 +55,8 @@ github.com/google/uuid v1.1.2/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+
 github.com/grpc-ecosystem/grpc-gateway v1.16.0/go.mod h1:BDjrQk3hbvj6Nolgz8mAMFbcEtjT1g+wF4CSlocrBnw=
 github.com/mitchellh/mapstructure v1.4.3 h1:OVowDSCllw/YjdLkam3/sm7wEtOy59d8ndGgCcyj8cs=
 github.com/mitchellh/mapstructure v1.4.3/go.mod h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=
-github.com/outblocks/outblocks-plugin-go v0.0.0-20220523125847-c49b06ddbefa h1:Fuh7F64TxLDHkWZFyHbBW9B1IA0lKwEZbZQMRVB7LS4=
-github.com/outblocks/outblocks-plugin-go v0.0.0-20220523125847-c49b06ddbefa/go.mod h1:tcD3iwXc4UZ0H0ad9wvY41ZOqbG2UJ6bbl1Ha+/eyJc=
+github.com/outblocks/outblocks-plugin-go v0.0.0-20220603193109-1f79419a9a45 h1:0PHwTQLzVBJbYtCqxkFpDJwXBtjq7cene9V3CUVRVtI=
+github.com/outblocks/outblocks-plugin-go v0.0.0-20220603193109-1f79419a9a45/go.mod h1:tcD3iwXc4UZ0H0ad9wvY41ZOqbG2UJ6bbl1Ha+/eyJc=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

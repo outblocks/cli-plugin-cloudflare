@@ -24,8 +24,36 @@ func (p *Plugin) ProjectInit(ctx context.Context, r *apiv1.ProjectInitRequest) (
 func (p *Plugin) Start(ctx context.Context, r *apiv1.StartRequest) (*apiv1.StartResponse, error) {
 	var err error
 
+	apiKey, err := p.hostCli.HostGetSecret(ctx, &apiv1.HostGetSecretRequest{
+		Key: "cloudflare_api_key",
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	apiEmail, err := p.hostCli.HostGetSecret(ctx, &apiv1.HostGetSecretRequest{
+		Key: "cloudflare_api_email",
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	apiToken, err := p.hostCli.HostGetSecret(ctx, &apiv1.HostGetSecretRequest{
+		Key: "cloudflare_api_token",
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	apiUserServiceKey, err := p.hostCli.HostGetSecret(ctx, &apiv1.HostGetSecretRequest{
+		Key: "cloudflare_api_user_service_key",
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	// Init cloudflare API.
-	p.cli, err = config.NewCloudflareClient()
+	p.cli, err = config.NewCloudflareClient(apiKey.Value, apiEmail.Value, apiToken.Value, apiUserServiceKey.Value)
 	if err != nil {
 		return nil, err
 	}

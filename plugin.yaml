@@ -11,3 +11,22 @@ actions:
   - deploy
 priorities:
   deploy: [500]
+
+secrets:
+  cloudflare_api_key:
+    description: >
+      Global Cloudflare API key (requires 'cloudflare_api_email' to be set).
+      Defaults to $CLOUDFLARE_API_KEY if not specifed.
+  cloudflare_api_email:
+    description: >
+      Cloudflare user email (requires 'cloudflare_api_key' to be set).
+      Defaults to $CLOUDFLARE_API_EMAIL if not specified.
+  cloudflare_api_token:
+    description: >
+      Scoped Cloudflare API token (create here: https://dash.cloudflare.com/profile/api-tokens ).
+      Defaults to $CLOUDFLARE_API_TOKEN if not specified.
+  cloudflare_api_user_service_key:
+    description: >
+      Cloudflare Origin CA Key (starts with "v1.0-").
+      Defaults to $CLOUDFLARE_API_USER_SERVICE_KEY if not specifed.
+      Required if you wish to automatically generate Origin CA certificates.
