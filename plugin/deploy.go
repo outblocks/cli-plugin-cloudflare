@@ -90,12 +90,26 @@ func (p *Plugin) validCloudflareDomains(domains []*apiv1.DomainInfo) []*apiv1.Do
 	return ret
 }
 
+func containsNestedSubdomain(domain *apiv1.DomainInfo) bool {
+	for _, rec := range domain.Domains {
+		if strings.Count(rec, ".") > 2 {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (p *Plugin) registerOriginCertificates(reg *registry.Registry, domains []*apiv1.DomainInfo) error {
 	p.originCerts = make(map[*cf.OriginCertificate]*apiv1.DomainInfo)
 
 	for _, d := range domains {
 		zone := p.getDomainZoneName(d.Domains[0])
 		h := make([]fields.Field, len(d.Domains))
+
+		if containsNestedSubdomain(d) {
+			continue
+		}
 
 		for i, v := range d.Domains {
 			h[i] = fields.String(v)
