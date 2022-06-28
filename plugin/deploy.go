@@ -3,6 +3,7 @@ package plugin
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/outblocks/cli-plugin-cloudflare/cf"
@@ -38,7 +39,7 @@ func (p *Plugin) computeZoneMap(state *apiv1.PluginState, domains []*apiv1.Domai
 			if id == "" {
 				id, err = p.cli.ZoneIDByName(zone)
 				if err != nil {
-					return err
+					return fmt.Errorf("cannot lookup zone '%s': %w", zone, err)
 				}
 			}
 
