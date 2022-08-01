@@ -1,5 +1,13 @@
 # Outblocks Cloudflare Plugin Changelog
 
+## [v0.1.5](https://github.com/outblocks/cli-plugin-cloudflare/compare/v0.1.4...v0.1.5)
+
+> 2022-08-01
+
+### BUG FIXES
+
+[`d214e7b`](https://github.com/outblocks/cli-plugin-cloudflare/commit/d214e7b9184f42ebb25e3054b4b576dc5c65f0ba) origin cloudflare certs
+
 ## [v0.1.4](https://github.com/outblocks/cli-plugin-cloudflare/compare/v0.1.3...v0.1.4)
 
 > 2022-08-01
