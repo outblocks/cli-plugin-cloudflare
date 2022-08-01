@@ -109,6 +109,7 @@ func (p *Plugin) registerOriginCertificates(reg *registry.Registry, domains []*a
 		h := make([]fields.Field, len(d.Domains))
 
 		if containsNestedSubdomain(d) {
+			p.nonOriginDomains = append(p.nonOriginDomains, d)
 			continue
 		}
 
@@ -133,7 +134,8 @@ func (p *Plugin) registerOriginCertificates(reg *registry.Registry, domains []*a
 			d.Other, _ = structpb.NewStruct(nil)
 		}
 
-		d.Other.GetFields()["cloudflare_proxy"] = structpb.NewBoolValue(true)
+		d.Other.Fields["cloudflare_proxy"] = structpb.NewBoolValue(true)
+		d.Other.Fields["cloudflare_origin"] = structpb.NewBoolValue(true)
 	}
 
 	return nil
@@ -145,6 +147,17 @@ func (p *Plugin) processOriginCertificates() {
 			domain.Cert = cert.Certificate.Current()
 			domain.Key = cert.PrivateKey.Current()
 		}
+	}
+
+	for _, domain := range p.nonOriginDomains {
+		if domain.Other.AsMap()["cloudflare_origin"] != true {
+			continue
+		}
+
+		delete(domain.Other.GetFields(), "cloudflare_origin")
+
+		domain.Cert = ""
+		domain.Key = ""
 	}
 }
 

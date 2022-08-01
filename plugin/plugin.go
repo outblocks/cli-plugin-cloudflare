@@ -15,10 +15,11 @@ type Plugin struct {
 	env     env.Enver
 	hostCli apiv1.HostServiceClient
 
-	cli         *cloudflare.API
-	settings    config.Settings
-	zoneMap     map[string]string
-	originCerts map[*cf.OriginCertificate]*apiv1.DomainInfo
+	cli              *cloudflare.API
+	settings         config.Settings
+	zoneMap          map[string]string
+	originCerts      map[*cf.OriginCertificate]*apiv1.DomainInfo
+	nonOriginDomains []*apiv1.DomainInfo
 }
 
 func NewPlugin() *Plugin {
