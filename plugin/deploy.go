@@ -81,7 +81,7 @@ func (p *Plugin) validCloudflareDomains(domains []*apiv1.DomainInfo) []*apiv1.Do
 			continue
 		}
 
-		if domainInfo.Other.AsMap()["cloudflare_proxy"] != true && domainInfo.Cert != "" && domainInfo.Key != "" {
+		if domainInfo.Properties.AsMap()["cloudflare_proxy"] != true && domainInfo.Cert != "" && domainInfo.Key != "" {
 			continue
 		}
 
@@ -130,12 +130,12 @@ func (p *Plugin) registerOriginCertificates(reg *registry.Registry, domains []*a
 		d.Cert = pendingValue
 		d.Key = pendingValue
 
-		if d.Other.GetFields() == nil {
-			d.Other, _ = structpb.NewStruct(nil)
+		if d.Properties.GetFields() == nil {
+			d.Properties, _ = structpb.NewStruct(nil)
 		}
 
-		d.Other.Fields["cloudflare_proxy"] = structpb.NewBoolValue(true)
-		d.Other.Fields["cloudflare_origin"] = structpb.NewBoolValue(true)
+		d.Properties.Fields["cloudflare_proxy"] = structpb.NewBoolValue(true)
+		d.Properties.Fields["cloudflare_origin"] = structpb.NewBoolValue(true)
 	}
 
 	return nil
@@ -150,11 +150,11 @@ func (p *Plugin) processOriginCertificates() {
 	}
 
 	for _, domain := range p.nonOriginDomains {
-		if domain.Other.AsMap()["cloudflare_origin"] != true {
+		if domain.Properties.AsMap()["cloudflare_origin"] != true {
 			continue
 		}
 
-		delete(domain.Other.GetFields(), "cloudflare_origin")
+		delete(domain.Properties.GetFields(), "cloudflare_origin")
 
 		domain.Cert = ""
 		domain.Key = ""
@@ -208,7 +208,7 @@ func (p *Plugin) Plan(ctx context.Context, reg *registry.Registry, r *apiv1.Plan
 	r.State.Registry = data
 
 	return &apiv1.PlanResponse{
-		Deploy: &apiv1.Plan{
+		Plan: &apiv1.Plan{
 			Actions: registry.PlanActionFromDiff(diff),
 		},
 		State:   r.State,

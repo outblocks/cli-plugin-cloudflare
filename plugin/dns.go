@@ -29,7 +29,7 @@ func (p *Plugin) registerDNSRecords(reg *registry.Registry, domains []*apiv1.Dom
 
 	for _, rec := range records {
 		di := matcher.Match(rec.Record)
-		proxy := di != nil && di.Other.AsMap()["cloudflare_proxy"] == true && strings.Count(rec.Record, ".") <= 2
+		proxy := di != nil && di.Properties.AsMap()["cloudflare_proxy"] == true && strings.Count(rec.Record, ".") <= 2
 
 		zone := p.getDomainZoneName(rec.Record)
 		if zone == "" {
@@ -97,7 +97,7 @@ func (p *Plugin) PlanDNS(ctx context.Context, reg *registry.Registry, r *apiv1.P
 	r.State.Registry = data
 
 	return &apiv1.PlanDNSResponse{
-		Dns: &apiv1.Plan{
+		Plan: &apiv1.Plan{
 			Actions: registry.PlanActionFromDiff(diff),
 		},
 		State:      state,

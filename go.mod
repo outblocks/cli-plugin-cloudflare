@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/cloudflare/cloudflare-go v0.40.0
-	github.com/outblocks/outblocks-plugin-go v0.0.0-20220712161354-7d8111dfc469
+	github.com/outblocks/outblocks-plugin-go v0.0.0-20220803192450-7744c1c50028
 	google.golang.org/protobuf v1.28.0
 )
 
