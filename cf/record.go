@@ -44,17 +44,17 @@ func (o *DNSRecord) Read(ctx context.Context, meta interface{}) error {
 
 	var rec *cloudflare.DNSRecord
 
-	for _, r := range records.([]cloudflare.DNSRecord) { // nolint: gocritic
+	for _, r := range records.([]cloudflare.DNSRecord) { //nolint: gocritic
 		if o.ID.Current() == r.ID {
-			rec = &r // nolint
+			rec = &r //nolint
 			break
 		}
 	}
 
 	if rec == nil {
-		for _, r := range records.([]cloudflare.DNSRecord) { // nolint: gocritic
+		for _, r := range records.([]cloudflare.DNSRecord) { //nolint: gocritic
 			if o.Name.Any() == r.Name {
-				rec = &r // nolint
+				rec = &r //nolint
 				break
 			}
 		}
