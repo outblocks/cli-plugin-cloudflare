@@ -1,5 +1,15 @@
 # Outblocks Cloudflare Plugin Changelog
 
+## [v0.1.7](https://github.com/outblocks/cli-plugin-cloudflare/compare/v0.1.6...v0.1.7)
+
+> 2022-09-07
+
+### FEATURES
+
+[`54b5d7c`](https://github.com/outblocks/cli-plugin-cloudflare/commit/54b5d7c9cff9e562b84e49f5e75651616ed8a1aa) cloudflare deployments (static and function) with logs
+
+[`32cc339`](https://github.com/outblocks/cli-plugin-cloudflare/commit/32cc339720da9b00b1cc698869a1fdde3481fe65) sdk and go updates
+
 ## [v0.1.6](https://github.com/outblocks/cli-plugin-cloudflare/compare/v0.1.5...v0.1.6)
 
 > 2022-08-03
