@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/outblocks/cli-plugin-cloudflare/cf"
@@ -11,15 +12,19 @@ import (
 	apiv1 "github.com/outblocks/outblocks-plugin-go/gen/api/v1"
 	"github.com/outblocks/outblocks-plugin-go/registry"
 	"github.com/outblocks/outblocks-plugin-go/registry/fields"
+	"github.com/outblocks/outblocks-plugin-go/types"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-const pendingValue = "pending"
+const (
+	certPendingValue = "pending"
+
+	AppTypeStatic   = "static"
+	AppTypeFunction = "function"
+)
 
 func (p *Plugin) computeZoneMap(state *apiv1.PluginState, domains []*apiv1.DomainInfo) error {
 	var err error
-
-	p.zoneMap = map[string]string{}
 
 	if state.Other == nil {
 		state.Other = make(map[string][]byte)
@@ -29,7 +34,7 @@ func (p *Plugin) computeZoneMap(state *apiv1.PluginState, domains []*apiv1.Domai
 
 	for _, domainInfo := range domains {
 		for _, d := range domainInfo.Domains {
-			zone := p.getDomainZoneName(d)
+			zone := getDomainZoneName(d)
 			if zone == "" {
 				continue
 			}
@@ -58,10 +63,10 @@ func (p *Plugin) isValidCloudflareDomain(domainInfo *apiv1.DomainInfo) bool {
 		return false
 	}
 
-	zone := p.getDomainZoneName(domainInfo.Domains[0])
+	zone := getDomainZoneName(domainInfo.Domains[0])
 
 	for _, d := range domainInfo.Domains[1:] {
-		if zone != p.getDomainZoneName(d) {
+		if zone != getDomainZoneName(d) {
 			return false
 		}
 	}
@@ -101,11 +106,43 @@ func containsNestedSubdomain(domain *apiv1.DomainInfo) bool {
 	return false
 }
 
-func (p *Plugin) registerOriginCertificates(reg *registry.Registry, domains []*apiv1.DomainInfo) error {
-	p.originCerts = make(map[*cf.OriginCertificate]*apiv1.DomainInfo)
+func isStringArraySubset(arr []string, m map[string]struct{}) bool {
+	for _, v := range arr {
+		if _, ok := m[v]; !ok {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (p *Plugin) registerOriginCertificates(reg *registry.Registry, appPlans []*apiv1.AppPlan, domains []*apiv1.DomainInfo, apply bool) error {
+	appIDs := make(map[string]struct{})
+
+	for _, a := range appPlans {
+		appIDs[a.State.App.Id] = struct{}{}
+	}
+
+	dom := make([]*apiv1.DomainInfo, 0, len(domains))
 
 	for _, d := range domains {
-		zone := p.getDomainZoneName(d.Domains[0])
+		if !isStringArraySubset(d.AppIds, appIDs) {
+			dom = append(dom, d)
+		}
+	}
+
+	if len(dom) == 0 {
+		return nil
+	}
+
+	if !strings.HasPrefix(p.cli.APIUserServiceKey, "v1.0-") && !apply {
+		p.log.Infoln("'CLOUDFLARE_API_USER_SERVICE_KEY' not set or invalid, skipping Origin CA creation...")
+
+		return nil
+	}
+
+	for _, d := range dom {
+		zone := getDomainZoneName(d.Domains[0])
 		h := make([]fields.Field, len(d.Domains))
 
 		if containsNestedSubdomain(d) {
@@ -127,8 +164,8 @@ func (p *Plugin) registerOriginCertificates(reg *registry.Registry, domains []*a
 		}
 
 		p.originCerts[&o] = d
-		d.Cert = pendingValue
-		d.Key = pendingValue
+		d.Cert = certPendingValue
+		d.Key = certPendingValue
 
 		if d.Properties.GetFields() == nil {
 			d.Properties, _ = structpb.NewStruct(nil)
@@ -161,33 +198,99 @@ func (p *Plugin) processOriginCertificates() {
 	}
 }
 
-func (p *Plugin) Plan(ctx context.Context, reg *registry.Registry, r *apiv1.PlanRequest) (*apiv1.PlanResponse, error) {
+func (p *Plugin) processApps(ctx context.Context, reg *registry.Registry, appPlans []*apiv1.AppPlan) error {
+	if len(appPlans) == 0 {
+		return nil
+	}
+
+	if p.cli.AccountID == "" {
+		return fmt.Errorf("$CLOUDFLARE_ACCOUNT_ID or secrets.cloudflare_account_id is required for app deployment")
+	}
+
+	apps := make([]*apiv1.App, len(appPlans))
+	for i, a := range appPlans {
+		apps[i] = a.State.App
+	}
+
+	appVars := types.AppVarsFromApps(apps)
+
+	for _, app := range appPlans {
+		if app.Skip {
+			continue
+		}
+
+		hostname := ""
+		path := ""
+
+		if app.State.App.Url != "" {
+			u, _ := url.Parse(app.State.App.Url)
+			hostname = u.Hostname()
+			path = u.Path
+		}
+
+		switch {
+		case app.State.App.Type == AppTypeStatic:
+			a, err := NewStaticApp(app, []string{hostname})
+			if err != nil {
+				return err
+			}
+
+			if len(path) > 1 {
+				return fmt.Errorf("cannot use url '%s' for cloudflare pages - url has to be a full domain without path", app.State.App.Url)
+			}
+
+			p.staticApps[app.State.App.Id] = a
+
+			err = a.process(ctx, p.PluginContext(), reg)
+			if err != nil {
+				return err
+			}
+
+		case app.State.App.Type == AppTypeFunction:
+			domain := getDomainZoneName(hostname)
+
+			if strings.Count(hostname, ".") > 2 {
+				return fmt.Errorf("cannot use domain '%s' for cloudflare worker deployment - current max subdomain level is 1", hostname)
+			}
+
+			zoneID := p.zoneMap[domain]
+			if zoneID == "" {
+				return fmt.Errorf("zone for domain could not be found: %s", domain)
+			}
+
+			a, err := NewFunctionApp(app, zoneID)
+			if err != nil {
+				return err
+			}
+
+			p.functionApps[app.State.App.Id] = a
+
+			err = a.process(ctx, p.PluginContext(), reg, types.VarsForApp(appVars, app.State.App, nil))
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+func (p *Plugin) processDeployInit(ctx context.Context, reg *registry.Registry, appPlans []*apiv1.AppPlan, state *apiv1.PluginState, domains []*apiv1.DomainInfo, apply bool) ([]*registry.Diff, error) {
 	pctx := p.PluginContext()
 	reg = reg.Partition("init")
 
-	err := p.computeZoneMap(r.State, r.Domains)
+	err := prepareRegistry(reg, state.Registry)
 	if err != nil {
 		return nil, err
 	}
 
-	domains := p.validCloudflareDomains(r.Domains)
-
-	if len(domains) == 0 {
-		return &apiv1.PlanResponse{}, nil
-	}
-
-	if !strings.HasPrefix(p.cli.APIUserServiceKey, "v1.0-") {
-		p.log.Infoln("'CLOUDFLARE_API_USER_SERVICE_KEY' not set or invalid, skipping Origin CA creation...")
-
-		return &apiv1.PlanResponse{}, nil
-	}
-
-	err = prepareRegistry(reg, r.State.Registry)
+	err = p.computeZoneMap(state, domains)
 	if err != nil {
 		return nil, err
 	}
 
-	err = p.registerOriginCertificates(reg, domains)
+	domains = p.validCloudflareDomains(domains)
+
+	err = p.registerOriginCertificates(reg, appPlans, domains, apply)
 	if err != nil {
 		return nil, err
 	}
@@ -200,6 +303,87 @@ func (p *Plugin) Plan(ctx context.Context, reg *registry.Registry, r *apiv1.Plan
 
 	p.processOriginCertificates()
 
+	return diff, err
+}
+
+func (p *Plugin) processDeploy(ctx context.Context, reg *registry.Registry, appPlans []*apiv1.AppPlan, state *apiv1.PluginState) (map[string]*apiv1.AppState, []*apiv1.DNSRecord, []*registry.Diff, error) {
+	pctx := p.PluginContext()
+	reg = reg.Partition("deploy")
+
+	err := prepareRegistry(reg, state.Registry)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	err = p.processApps(ctx, reg, appPlans)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	appStates := make(map[string]*apiv1.AppState)
+
+	// Process DNS records and appstates.
+	recs := make(map[string]*apiv1.DNSRecord)
+
+	for _, app := range p.staticApps {
+		rec := app.DNSRecord()
+		if rec != nil {
+			recs[rec.Record] = rec
+		}
+
+		state := app.AppState()
+		if state != nil {
+			appStates[app.App.Id] = state
+		}
+	}
+
+	for _, app := range p.functionApps {
+		rec := app.DNSRecord()
+		if rec != nil {
+			if _, ok := recs[rec.Record]; !ok {
+				recs[rec.Record] = rec
+			}
+		}
+
+		state := app.AppState()
+		if state != nil {
+			appStates[app.App.Id] = state
+		}
+	}
+
+	dnsRecords := make([]*apiv1.DNSRecord, 0, len(recs))
+
+	for _, rec := range recs {
+		dnsRecords = append(dnsRecords, rec)
+	}
+
+	// Process registry.
+	diff, err := reg.ProcessAndDiff(ctx, pctx)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	return appStates, dnsRecords, diff, err
+}
+
+func (p *Plugin) Plan(ctx context.Context, reg *registry.Registry, r *apiv1.PlanRequest) (*apiv1.PlanResponse, error) {
+	var (
+		diff       []*registry.Diff
+		err        error
+		dnsRecords []*apiv1.DNSRecord
+		appStates  map[string]*apiv1.AppState
+	)
+
+	if r.Priority == 500 {
+		diff, err = p.processDeployInit(ctx, reg, r.Apps, r.State, r.Domains, false)
+	} else {
+		appStates, dnsRecords, diff, err = p.processDeploy(ctx, reg, r.Apps, r.State)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
 	data, err := reg.Dump()
 	if err != nil {
 		return nil, err
@@ -211,43 +395,30 @@ func (p *Plugin) Plan(ctx context.Context, reg *registry.Registry, r *apiv1.Plan
 		Plan: &apiv1.Plan{
 			Actions: registry.PlanActionFromDiff(diff),
 		},
-		State:   r.State,
-		Domains: r.Domains,
+		State:      r.State,
+		AppStates:  appStates,
+		Domains:    r.Domains,
+		DnsRecords: dnsRecords,
 	}, nil
 }
 
 func (p *Plugin) Apply(r *apiv1.ApplyRequest, reg *registry.Registry, stream apiv1.DeployPluginService_ApplyServer) error {
 	ctx := stream.Context()
 	pctx := p.PluginContext()
-	reg = reg.Partition("init")
 
-	err := p.computeZoneMap(r.State, r.Domains)
-	if err != nil {
-		return err
+	var (
+		diff       []*registry.Diff
+		err        error
+		dnsRecords []*apiv1.DNSRecord
+		appStates  map[string]*apiv1.AppState
+	)
+
+	if r.Priority == 500 {
+		diff, err = p.processDeployInit(ctx, reg, r.Apps, r.State, r.Domains, true)
+	} else {
+		appStates, dnsRecords, diff, err = p.processDeploy(ctx, reg, r.Apps, r.State)
 	}
 
-	domains := p.validCloudflareDomains(r.Domains)
-
-	if len(domains) == 0 {
-		return nil
-	}
-
-	if !strings.HasPrefix(p.cli.APIUserServiceKey, "v1.0-") {
-		return nil
-	}
-
-	err = prepareRegistry(reg, r.State.Registry)
-	if err != nil {
-		return err
-	}
-
-	err = p.registerOriginCertificates(reg, domains)
-	if err != nil {
-		return err
-	}
-
-	// Process registry.
-	diff, err := reg.ProcessAndDiff(ctx, pctx)
 	if err != nil {
 		return err
 	}
@@ -266,8 +437,10 @@ func (p *Plugin) Apply(r *apiv1.ApplyRequest, reg *registry.Registry, stream api
 	_ = stream.Send(&apiv1.ApplyResponse{
 		Response: &apiv1.ApplyResponse_Done{
 			Done: &apiv1.ApplyDoneResponse{
-				State:   r.State,
-				Domains: r.Domains,
+				State:      r.State,
+				AppStates:  appStates,
+				Domains:    r.Domains,
+				DnsRecords: dnsRecords,
 			},
 		},
 	})

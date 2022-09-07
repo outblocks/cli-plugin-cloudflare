@@ -13,7 +13,7 @@ import (
 	"github.com/outblocks/outblocks-plugin-go/types"
 )
 
-func (p *Plugin) getDomainZoneName(rec string) string {
+func getDomainZoneName(rec string) string {
 	split := strings.Split(rec, ".")
 	l := len(split)
 
@@ -24,6 +24,20 @@ func (p *Plugin) getDomainZoneName(rec string) string {
 	return fmt.Sprintf("%s.%s", split[l-2], split[l-1])
 }
 
+func getHostname(rec string) string {
+	split := strings.SplitN(rec, "://", 2)
+	if len(split) == 2 {
+		rec = split[1]
+	}
+
+	split = strings.SplitN(rec, "/", 2)
+	if len(split) == 2 {
+		rec = split[0]
+	}
+
+	return rec
+}
+
 func (p *Plugin) registerDNSRecords(reg *registry.Registry, domains []*apiv1.DomainInfo, records []*apiv1.DNSRecord) error {
 	matcher := types.NewDomainInfoMatcher(domains)
 
@@ -31,7 +45,7 @@ func (p *Plugin) registerDNSRecords(reg *registry.Registry, domains []*apiv1.Dom
 		di := matcher.Match(rec.Record)
 		proxy := di != nil && di.Properties.AsMap()["cloudflare_proxy"] == true && strings.Count(rec.Record, ".") <= 2
 
-		zone := p.getDomainZoneName(rec.Record)
+		zone := getDomainZoneName(rec.Record)
 		if zone == "" {
 			continue
 		}

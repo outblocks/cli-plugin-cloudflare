@@ -52,8 +52,15 @@ func (p *Plugin) Start(ctx context.Context, r *apiv1.StartRequest) (*apiv1.Start
 		return nil, err
 	}
 
+	accountID, err := p.hostCli.HostGetSecret(ctx, &apiv1.HostGetSecretRequest{
+		Key: "cloudflare_account_id",
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	// Init cloudflare API.
-	p.cli, err = config.NewCloudflareClient(apiKey.Value, apiEmail.Value, apiToken.Value, apiUserServiceKey.Value)
+	p.cli, p.wranglerCli, err = config.NewCloudflareClient(apiKey.Value, apiEmail.Value, apiToken.Value, apiUserServiceKey.Value, accountID.Value)
 	if err != nil {
 		return nil, err
 	}

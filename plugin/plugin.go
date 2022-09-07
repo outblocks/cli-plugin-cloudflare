@@ -15,22 +15,38 @@ type Plugin struct {
 	env     env.Enver
 	hostCli apiv1.HostServiceClient
 
-	cli              *cloudflare.API
+	cli         *cloudflare.API
+	wranglerCli *config.WranglerCloudflareAPI
+
 	settings         config.Settings
 	zoneMap          map[string]string
 	originCerts      map[*cf.OriginCertificate]*apiv1.DomainInfo
 	nonOriginDomains []*apiv1.DomainInfo
+
+	staticApps    map[string]*StaticApp
+	functionApps  map[string]*FunctionApp
+	pluginContext *config.PluginContext
 }
 
 func NewPlugin() *Plugin {
-	return &Plugin{}
+	return &Plugin{
+		originCerts:  make(map[*cf.OriginCertificate]*apiv1.DomainInfo),
+		zoneMap:      map[string]string{},
+		staticApps:   make(map[string]*StaticApp),
+		functionApps: make(map[string]*FunctionApp),
+	}
 }
 
 func (p *Plugin) PluginContext() *config.PluginContext {
-	return config.NewPluginContext(p.env, p.cli, &p.settings)
+	if p.pluginContext == nil {
+		p.pluginContext = config.NewPluginContext(p.env, p.cli, p.wranglerCli, &p.settings)
+	}
+
+	return p.pluginContext
 }
 
 var (
 	_ plugin.DNSPluginHandler    = (*Plugin)(nil)
 	_ plugin.DeployPluginHandler = (*Plugin)(nil)
+	_ plugin.LogsPluginHandler   = (*Plugin)(nil)
 )

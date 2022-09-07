@@ -10,7 +10,7 @@ actions:
   - dns
   - deploy
 priorities:
-  deploy: [500]
+  deploy: [500, 1000]
 
 secrets:
   cloudflare_api_key:
@@ -25,8 +25,37 @@ secrets:
     description: >
       Scoped Cloudflare API token (create here: https://dash.cloudflare.com/profile/api-tokens ).
       Defaults to $CLOUDFLARE_API_TOKEN if not specified.
+
+      Required permissions:
+
+      For DNS automatic setup:
+      Zone - Zone - Read,
+      Zone - DNS - Edit.
+
+      For deployments:
+      Account - Cloudflare Pages - Edit,
+      Account - Workers KV Storage - Edit,
+      Account - Workers R2 Storage - Edit,
+      Account - Workers Scripts - Edit,
+      Account - Workers Tail - Edit,
+      Zone - Workers Routes - Edit.
+
   cloudflare_api_user_service_key:
     description: >
       Cloudflare Origin CA Key (starts with "v1.0-").
       Defaults to $CLOUDFLARE_API_USER_SERVICE_KEY if not specifed.
       Required if you wish to automatically generate Origin CA certificates.
+  cloudflare_account_id:
+    description: >
+      Cloudflare Account ID (how to find:
+      https://developers.cloudflare.com/fundamentals/get-started/basic-tasks/find-account-and-zone-ids/ ).
+      Defaults to $CLOUDFLARE_ACCOUNT_ID if not specifed.
+      Required if you wish to use cloudflare for static or function deployments.
+
+supports:
+  - function
+  - static
+
+app_overrides:
+  function:
+    archive: false

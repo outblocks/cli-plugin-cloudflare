@@ -13,9 +13,10 @@ type funcCacheData struct {
 }
 
 type PluginContext struct {
-	env      env.Enver
-	cli      *cloudflare.API
-	settings *Settings
+	env         env.Enver
+	cli         *cloudflare.API
+	wranglerCli *WranglerCloudflareAPI
+	settings    *Settings
 
 	funcCache map[string]*funcCacheData
 
@@ -24,12 +25,13 @@ type PluginContext struct {
 	}
 }
 
-func NewPluginContext(e env.Enver, cli *cloudflare.API, settings *Settings) *PluginContext {
+func NewPluginContext(e env.Enver, cli *cloudflare.API, wranglerCli *WranglerCloudflareAPI, settings *Settings) *PluginContext {
 	return &PluginContext{
-		env:       e,
-		cli:       cli,
-		settings:  settings,
-		funcCache: make(map[string]*funcCacheData),
+		env:         e,
+		cli:         cli,
+		wranglerCli: wranglerCli,
+		settings:    settings,
+		funcCache:   make(map[string]*funcCacheData),
 	}
 }
 
@@ -39,6 +41,10 @@ func (c *PluginContext) Settings() *Settings {
 
 func (c *PluginContext) Env() env.Enver {
 	return c.env
+}
+
+func (c *PluginContext) WranglerCloudflareClient() *WranglerCloudflareAPI {
+	return c.wranglerCli
 }
 
 func (c *PluginContext) CloudflareClient() *cloudflare.API {
