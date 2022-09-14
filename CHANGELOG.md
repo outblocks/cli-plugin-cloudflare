@@ -1,5 +1,13 @@
 # Outblocks Cloudflare Plugin Changelog
 
+## [v0.1.8](https://github.com/outblocks/cli-plugin-cloudflare/compare/v0.1.7...v0.1.8)
+
+> 2022-09-14
+
+### FEATURES
+
+[`3668100`](https://github.com/outblocks/cli-plugin-cloudflare/commit/366810015f6d760e099c28bf2d5b3dffd38f8c48) support for worker scheduler
+
 ## [v0.1.7](https://github.com/outblocks/cli-plugin-cloudflare/compare/v0.1.6...v0.1.7)
 
 > 2022-09-07
