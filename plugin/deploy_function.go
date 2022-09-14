@@ -23,8 +23,9 @@ type FunctionApp struct {
 	DeployOpts *types.FunctionAppDeployOptions
 	ZoneID     string
 
-	WorkerRoute  *cf.WorkerRoute
-	WorkerScript *cf.WorkerScript
+	WorkerRoute      *cf.WorkerRoute
+	WorkerScript     *cf.WorkerScript
+	WorkerSchedulers *cf.WorkerSchedulers
 }
 
 func NewFunctionApp(plan *apiv1.AppPlan, zoneID string) (*FunctionApp, error) {
@@ -47,6 +48,8 @@ func NewFunctionApp(plan *apiv1.AppPlan, zoneID string) (*FunctionApp, error) {
 }
 
 func (o *FunctionApp) process(ctx context.Context, pctx *config.PluginContext, r *registry.Registry, vars map[string]interface{}) error {
+	cli := pctx.CloudflareClient()
+
 	buildDir := filepath.Join(pctx.Env().ProjectDir(), o.App.Dir, o.Props.Build.Dir)
 	scriptName := cf.ID(pctx.Env(), o.App.Id)
 
@@ -105,6 +108,23 @@ func (o *FunctionApp) process(ctx context.Context, pctx *config.PluginContext, r
 		if err != nil {
 			return err
 		}
+	}
+
+	crons := make([]fields.Field, len(o.Props.Scheduler))
+
+	for i, scheduler := range o.Props.Scheduler {
+		crons[i] = fields.String(scheduler.Cron)
+	}
+
+	o.WorkerSchedulers = &cf.WorkerSchedulers{
+		AccountID:  fields.String(cli.AccountID),
+		ScriptName: o.WorkerScript.Name,
+		Crons:      fields.Array(crons),
+	}
+
+	_, err = r.RegisterAppResource(o.App, "worker_schedulers", o.WorkerSchedulers)
+	if err != nil {
+		return err
 	}
 
 	return nil

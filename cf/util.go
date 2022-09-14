@@ -17,6 +17,7 @@ var Types = []registry.Resource{
 	(*PagesDeployment)(nil),
 	(*WorkerScript)(nil),
 	(*WorkerRoute)(nil),
+	(*WorkerSchedulers)(nil),
 }
 
 var (

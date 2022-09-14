@@ -21,7 +21,7 @@ type WorkerRoute struct {
 }
 
 func (o *WorkerRoute) ReferenceID() string {
-	return fields.GenerateID("workers/%s/routes/%s/%s", o.ZoneID, o.ScriptName, o.Pattern)
+	return fields.GenerateID("zones/%s/workers/routes/%s/%s", o.ZoneID, o.ScriptName, o.Pattern)
 }
 
 func (o *WorkerRoute) GetName() string {

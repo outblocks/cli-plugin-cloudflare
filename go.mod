@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/cloudflare/cloudflare-go v0.49.1-0.20220906224447-f4153a58a61b
 	github.com/gorilla/websocket v1.5.0
-	github.com/outblocks/outblocks-plugin-go v0.0.0-20220905223714-aedc83d026a3
+	github.com/outblocks/outblocks-plugin-go v0.0.0-20220914114257-711958f591f7
 	github.com/zeebo/blake3 v0.2.3
 	google.golang.org/protobuf v1.28.1
 )

@@ -24,7 +24,7 @@ type WorkerScript struct {
 }
 
 func (o *WorkerScript) ReferenceID() string {
-	return fields.GenerateID("workers/%s/scripts/%s", o.ZoneID, o.Name)
+	return fields.GenerateID("zones/%s/workers/scripts/%s", o.ZoneID, o.Name)
 }
 
 func (o *WorkerScript) GetName() string {
