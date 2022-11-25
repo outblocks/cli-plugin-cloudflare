@@ -178,11 +178,30 @@ func (p *Plugin) registerOriginCertificates(reg *registry.Registry, appPlans []*
 	return nil
 }
 
-func (p *Plugin) processOriginCertificates() {
+func (p *Plugin) processOriginCertificates(ctx context.Context, apply bool) error {
 	for cert, domain := range p.originCerts {
-		if cert.IsExisting() {
-			domain.Cert = cert.Certificate.Current()
-			domain.Key = cert.PrivateKey.Current()
+		if !cert.IsExisting() {
+			continue
+		}
+
+		domain.Cert = cert.Certificate.Current()
+		domain.Key = cert.PrivateKey.Current()
+
+		if !apply {
+			continue
+		}
+
+		zone := getDomainZoneName(domain.Domains[0])
+		zoneID := p.zoneMap[zone]
+		settings, _ := p.cli.ZoneSSLSettings(ctx, zoneID)
+
+		if settings.Value != "flexible" && settings.Value != "off" {
+			continue
+		}
+
+		_, err := p.cli.UpdateZoneSSLSettings(ctx, zoneID, "full")
+		if err != nil {
+			return err
 		}
 	}
 
@@ -196,6 +215,8 @@ func (p *Plugin) processOriginCertificates() {
 		domain.Cert = ""
 		domain.Key = ""
 	}
+
+	return nil
 }
 
 func (p *Plugin) processApps(ctx context.Context, reg *registry.Registry, appPlans []*apiv1.AppPlan) error {
@@ -301,7 +322,7 @@ func (p *Plugin) processDeployInit(ctx context.Context, reg *registry.Registry, 
 		return nil, err
 	}
 
-	p.processOriginCertificates()
+	err = p.processOriginCertificates(ctx, false)
 
 	return diff, err
 }
@@ -425,7 +446,7 @@ func (p *Plugin) Apply(r *apiv1.ApplyRequest, reg *registry.Registry, stream api
 
 	err = reg.Apply(ctx, pctx, diff, plugin_go.DefaultRegistryApplyCallback(stream))
 
-	p.processOriginCertificates()
+	_ = p.processOriginCertificates(ctx, true)
 
 	data, saveErr := reg.Dump()
 	if err == nil {
