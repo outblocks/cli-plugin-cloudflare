@@ -1,5 +1,15 @@
 # Outblocks Cloudflare Plugin Changelog
 
+## [v0.1.9](https://github.com/outblocks/cli-plugin-cloudflare/compare/v0.1.8...v0.1.9)
+
+> 2025-08-06
+
+### BUG FIXES
+
+[`d72fa8a`](https://github.com/outblocks/cli-plugin-cloudflare/commit/d72fa8a7e04c2c568185df1061faa1502bae976d) zone id assignment
+
+[`564d792`](https://github.com/outblocks/cli-plugin-cloudflare/commit/564d792a2562369ac7c244f81e33aa1421cf81ad) update ssl mode when needed
+
 ## [v0.1.8](https://github.com/outblocks/cli-plugin-cloudflare/compare/v0.1.7...v0.1.8)
 
 > 2022-09-14
