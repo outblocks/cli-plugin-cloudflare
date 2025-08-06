@@ -1,5 +1,13 @@
 # Outblocks Cloudflare Plugin Changelog
 
+## [v0.1.10](https://github.com/outblocks/cli-plugin-cloudflare/compare/v0.1.9...v0.1.10)
+
+> 2025-08-06
+
+### BUG FIXES
+
+[`488df69`](https://github.com/outblocks/cli-plugin-cloudflare/commit/488df6914023e099df71b44d64749e5134d9977a) changelog generation
+
 ## [v0.1.9](https://github.com/outblocks/cli-plugin-cloudflare/compare/v0.1.8...v0.1.9)
 
 > 2025-08-06
