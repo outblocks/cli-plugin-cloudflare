@@ -35,6 +35,12 @@ func (o *DNSRecord) Read(ctx context.Context, meta interface{}) error {
 	cli := pctx.CloudflareClient()
 	zoneID := o.ZoneID.Any()
 
+	if zoneID == "" {
+		o.MarkAsNew()
+
+		return nil
+	}
+
 	records, err := pctx.FuncCache(fmt.Sprintf("DNSRecords:list:%s", zoneID), func() (interface{}, error) {
 		return cli.DNSRecords(ctx, zoneID, cloudflare.DNSRecord{})
 	})
@@ -67,7 +73,7 @@ func (o *DNSRecord) Read(ctx context.Context, meta interface{}) error {
 	}
 
 	o.MarkAsExisting()
-	o.ZoneID.SetCurrent(rec.ZoneID)
+	o.ZoneID.SetCurrent(zoneID)
 	o.ID.SetCurrent(rec.ID)
 	o.Name.SetCurrent(rec.Name)
 	o.Type.SetCurrent(rec.Type)
